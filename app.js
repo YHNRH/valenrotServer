@@ -18,7 +18,7 @@ http.createServer(async function(req, res){
         });
         req.on('end', () => {
             console.log(body);
-            fs.writeFile('Output.txt', body, (err) => {
+            fs.writeFile('data/output.json', body, (err) => {
               if (err) throw err;
             })
             generatePdf(JSON.parse(body));
@@ -27,7 +27,7 @@ http.createServer(async function(req, res){
         });
     }
     else if(req.url == "/api/download"){
-      fs.readFile('Output.txt', (err, data) => {
+      fs.readFile('data/output.json', (err, data) => {
         if (err) throw err;
         console.dir(data.toString())
         res.write(data.toString()); 
@@ -89,7 +89,7 @@ function generatePdf(data) {
       }
       
       var pdfDoc = printer.createPdfKitDocument(docDefinition, options);
-      pdfDoc.pipe(fs.createWriteStream('document.pdf'));
+      pdfDoc.pipe(fs.createWriteStream('data/document.pdf'));
       pdfDoc.end();
 }
 
