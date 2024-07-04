@@ -18,7 +18,7 @@ http.createServer(async function(req, res){
         });
         req.on('end', () => {
             console.log(body);
-            fs.writeFile('data/output.json', body, (err) => {
+            fs.writeFile('data/output' + formatDate(Date.now()) + '.json', body, (err) => {
               if (err) throw err;
             })
             generatePdf(JSON.parse(body));
@@ -27,12 +27,31 @@ http.createServer(async function(req, res){
         });
     }
     else if(req.url == "/api/download"){
-      fs.readFile('data/output.json', (err, data) => {
-        if (err) throw err;
-        console.dir(data.toString())
-        res.write(data.toString()); 
-        res.end(); 
-      });
+
+      const getSortedFiles = async (dir) => {
+        const files = await fs.promises.readdir(dir);
+      
+        return files
+          .filter(el => el.startsWith("output") && el.endsWith(".json"))
+          .map(fileName => ({
+            name: fileName,
+            time: fs.statSync(`${dir}/${fileName}`).mtime.getTime(),
+          }))
+          .sort((a, b) => a.time - b.time)
+          .map(file => file.name);
+      };
+      
+      getSortedFiles("data")
+        .then(files => {
+          fs.readFile("data/" + files.reverse()[0],(err,data)=>{
+            if (err) throw err
+            console.dir(data.toString())
+            res.write(data.toString()); 
+            res.end(); 
+          })
+        })
+        .catch(console.error);
+
     }
     else if(req.url == "/api/names"){
         var body = await doRequest('https://randomall.ru/api/general/fantasy_name')
@@ -79,6 +98,11 @@ function generatePdf(data) {
             fontSize:25,
             bold:true,
             alignment:'left'
+          },
+          subheader: {
+            fontSize:15,
+            bold:true,
+            alignment:'left'
           }
         },
         content: getContent(data)
@@ -98,7 +122,6 @@ function getContent(data){
   data.forEach(el => {
     var race = el.race
     content.push({text: race.name,
-        fontSize:20,
         style:'header'
       })
 
@@ -163,6 +186,35 @@ function getContent(data){
 				headerRows:1
 			}
 		})
+    
+    el.subraces.forEach(subrace => {
+        content.push({text: subrace.name,
+          style:'subheader'
+        })
+        content.push({text: subrace.description})
+
+        content.push({text: "Пассивная способность: " +subrace.passiveAbility})
+
+        content.push({text: "Активная способность: " + subrace.activeAbility})
+
+    })
   })
   return content;
+}
+
+function formatDate(date) {
+  var d = new Date(date),
+      sec = '' + d.getSeconds(),
+      min = '' + d.getMinutes(),
+      hour = '' + d.getHours(),
+      month = '' + (d.getMonth() + 1),
+      day = '' + d.getDate(),
+      year = d.getFullYear();
+
+  if (month.length < 2) 
+      month = '0' + month;
+  if (day.length < 2) 
+      day = '0' + day;
+
+  return [year, month, day, hour, min, sec].join('-');
 }
