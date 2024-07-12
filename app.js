@@ -103,6 +103,12 @@ function generatePdf(data) {
             fontSize:15,
             bold:true,
             alignment:'left'
+          },
+          subheader1: {
+            fontSize:10,
+            bold:true,
+            alignment:'left',
+            color:'red'
           }
         },
         content: getContent(data)
@@ -117,89 +123,37 @@ function generatePdf(data) {
       pdfDoc.end();
 }
 
-function getContent(data){
+function getContent(sections){
   var content = []
-  data.forEach(el => {
-    var race = el.race
-    content.push({text: race.name,
-        style:'header'
-      })
-
-    content.push({
-			text: race.description
-		})
-
-    content.push({
-			table:{
-        widths:['auto','auto','*','auto','auto',],
-				body:[
-					[
-            {text:'Здоровье',bold:true},
-            race.health,
-            {
-              text: '',
-              borderColor: ['#000000', '#ffffff', '#000000', '#ffffff'],
-            },
-            {text:'Сила',bold:true},
-            race.strength, 
-          ],
-          [
-            {text:'Уворот',bold:true},
-            race.dodge, 
-            {
-              text: '',
-              borderColor: ['#000000', '#ffffff', '#000000', '#ffffff'],
-            },
-            {text:'Ловкость',bold:true},
-            race.agility, 
-          ],
-          [
-            {text:'Стойкость',bold:true},
-            race.durability, 
-            {
-              text: '',
-              borderColor: ['#000000', '#ffffff', '#000000', '#ffffff'],
-            },
-            {text:'Харизма',bold:true},
-            race.charisma, 
-          ],
-          [
-            {text:'Точность',bold:true},
-            race.accuracy, 
-            {
-              text: '',
-              borderColor: ['#000000', '#ffffff', '#000000', '#ffffff'],
-            },
-            {text:'Интеллект',bold:true},
-            race.intelligence, 
-          ],
-					[ {text:'Урон',bold:true},
-          race.damage,
-           {
-            text: '',
-            borderColor: ['#000000', '#ffffff', '#000000', '#ffffff'],
-          },
-           {text:'Восприятие',bold:true},
-           race.perception
-          ]
-				],
-				headerRows:1
-			}
-		})
-    
-    el.subraces.forEach(subrace => {
-        content.push({text: subrace.name,
-          style:'subheader'
-        })
-        content.push({text: subrace.description})
-
-        content.push({text: "Пассивная способность: " +subrace.passiveAbility})
-
-        content.push({text: "Активная способность: " + subrace.activeAbility})
-
+  var rootsections = sections.filter(el => !el.parentId)
+  
+  rootsections.forEach(section => {
+    content.push({text: section.title,
+      style:'header'
     })
+    content.push({
+      text: section.text
+    })
+
+    content.push(getChildSections(sections, section.uid))
+
   })
   return content;
+}
+
+function getChildSections(sections, parentId){
+  var content = []
+  sections.filter(child => child.parentId === parentId).forEach(el => {
+    content.push({text: el.title,
+      style: 'subheader'
+    })
+    content.push({
+      text: el.text
+    })
+      content.push(getChildSections(sections, el.uid))
+  })
+
+  return content
 }
 
 function formatDate(date) {
